@@ -35,6 +35,10 @@ class Polynomial(object):
         out = Polynomial.list_simplify(out)
         return Polynomial(out)
 
+    def __add__(self, other):
+        cs_1, cs_2 = self.pad(self.coeffs, other.coeffs)
+        return Polynomial([i + j for i, j in zip(cs_1, cs_2)])
+
 def is_prime(p, iters = 40):
     for i in xrange(iters):
         x = ran.randint(2, p - 1)
