@@ -1,5 +1,5 @@
-import random
 from fractions import gcd
+import random, json
 
 ran = random.SystemRandom()
 
@@ -100,8 +100,29 @@ def shamir(inp, n=5, k=3, size=2048):
     poly = Polynomial(coeffs)
     return [[(i, poly(i, p)) for i in range(1, n + 1)], p]
 
-def unshamir(sham, k):
-    points = set(sham[0])
-    points = [points.pop() for i in range(k)]
-    poly = interpolate(points, sham[1])
-    return poly.coeffs[-1] % sham[1]
+def unshamir(points, p, k):
+    points = random.sample(points, k)
+    poly = interpolate(points, p)
+    return poly.coeffs[-1] % p
+
+if __name__ == "__main__":
+    branch = raw_input("Would you like to decrypt? (y/N)").strip()
+    if branch == "y":
+        k = int(raw_input("Enter the number of shares needed to reconstruct secret: "))
+        pieces, p = [], 0
+        for i in range(k):
+            with open("{0}-shamir.txt".format(i), "r") as f:
+                piece, p = json.load(f)
+                pieces.append(piece)
+        print unshamir(pieces, p, k)
+    else:
+        n = int(raw_input("Enter the number of shares you would like to generate: "))
+        k = int(raw_input("Enter the number of shares needed to reconstruct secret: "))
+        pb = int(raw_input("Enter the size of the prime you'd like to use in bits: "))
+        s = int(raw_input("Enter your secret as a number less than {0} bits: ".format(pb)))
+        sham = shamir(s, n, k, pb)
+        for i, piece in enumerate(sham[0]):
+            with open("{0}-shamir.txt".format(i), "w") as f:
+                json.dump([piece, sham[1]], f)
+        print "Wrote {0} files to pwd.".format(n)
+            
