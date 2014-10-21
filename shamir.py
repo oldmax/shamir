@@ -11,7 +11,7 @@ class Polynomial(object):
     @classmethod
     def list_simplify(self, coeffs):
         i = 0
-        while coeffs[i] == 0:
+        while i < len(coeffs) and coeffs[i] == 0:
             i += 1
         return coeffs[i:]
 
@@ -38,6 +38,23 @@ class Polynomial(object):
     def __add__(self, other):
         cs_1, cs_2 = self.pad(self.coeffs, other.coeffs)
         return Polynomial([i + j for i, j in zip(cs_1, cs_2)])
+
+def interpolate(points):
+    '''Accepts a list of tuples (x, f(x)) and returns an
+       instance of Polynomial fit to those points'''
+    xs = [point[0] for point in points]
+    ys = [point[1] for point in points]
+    ls = [[] for i in xrange(len(points))]
+    for i in xrange(len(points)):
+        ran = range(len(points))
+        ran.remove(i)
+        tops, bottoms = [], []
+        for j in ran:
+            tops.append(Polynomial([1, -xs[j]]))
+            bottoms.append(Polynomial([1.0/(xs[i] - xs[j])]))
+        ls[i].extend([t*b for t, b in zip(tops, bottoms)])
+    lprods = [reduce(Polynomial.__mul__, l) for l in ls]
+    return reduce(Polynomial.__add__, [i*y for i, y in zip(lprods, [Polynomial([p]) for p in ys])])
 
 def is_prime(p, iters = 40):
     for i in xrange(iters):
