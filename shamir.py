@@ -39,7 +39,10 @@ class Polynomial(object):
         cs_1, cs_2 = self.pad(self.coeffs, other.coeffs)
         return Polynomial([i + j for i, j in zip(cs_1, cs_2)])
 
-def interpolate(points):
+    def __call__(self, x, p):
+        return sum([c*x**i % p for i, c in enumerate(self.coeffs[::-1])])
+
+def interpolate(points, p):
     '''Accepts a list of tuples (x, f(x)) and returns an
        instance of Polynomial fit to those points'''
     xs = [point[0] for point in points]
@@ -51,12 +54,12 @@ def interpolate(points):
         tops, bottoms = [], []
         for j in ran:
             tops.append(Polynomial([1, -xs[j]]))
-            bottoms.append(Polynomial([1.0/(xs[i] - xs[j])]))
+            bottoms.append(Polynomial([mod_inverse(xs[i] - xs[j], p)]))
         ls[i].extend([t*b for t, b in zip(tops, bottoms)])
     lprods = [reduce(Polynomial.__mul__, l) for l in ls]
     return reduce(Polynomial.__add__, [i*y for i, y in zip(lprods, [Polynomial([p]) for p in ys])])
 
-def is_prime(p, iters = 40):
+def is_prime(p, iters = 50):
     for i in xrange(iters):
         x = ran.randint(2, p - 1)
         s, d = 0, p - 1
@@ -71,8 +74,16 @@ def is_prime(p, iters = 40):
                 return False
     return True
 
-def generate_coeffs(p, m):
-    return (ran.randint(1, p) for i in range(m - 1))
+def get_prime(size_in_bits=2048):
+    while True:
+        p_p = ran.getrandbits(size_in_bits)
+        if p_p % 2 == 0:
+            p_p += 1
+        if is_prime(p_p):
+            return p_p
+
+def generate_coeffs(p, k):
+    return [ran.randint(1, p) for i in range(k - 1)]
 
 def mod_inverse(n, p):
     n, i = n % p, 1
@@ -81,3 +92,16 @@ def mod_inverse(n, p):
         i = (-i * q) % p
     if n == 1:
         return i
+
+def shamir(inp, n=5, k=3, size=2048):
+    p = get_prime(size)
+    coeffs = generate_coeffs(p, k)
+    coeffs.append(inp)
+    poly = Polynomial(coeffs)
+    return [[(i, poly(i, p)) for i in range(1, n + 1)], p]
+
+def unshamir(sham, k):
+    points = set(sham[0])
+    points = [points.pop() for i in range(k)]
+    poly = interpolate(points, sham[1])
+    return poly.coeffs[-1] % sham[1]
